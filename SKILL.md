@@ -24,59 +24,9 @@ Transform concise viewpoint documents into beautifully formatted WeChat articles
 
 Before polishing, use the comprehensive checklist to identify all ambiguities and missing information.
 
-**Read**: `references/polish-guidelines.md` - Section "文章层面歧义检查清单" (Article-Level Ambiguity Checklist)
+**Read**: `references/polish-guidelines.md` - Complete ambiguity checklist and confirmation patterns
 
-**Comprehensive checklist includes**:
-
-1. **标题检查** (Title Check) - Does the article have a title? If not, offer suggestions
-2. **语言风格** (Language Style) - Formal/professional, casual/popular, conversational, or custom
-3. **目标读者** (Target Audience) - General public, industry practitioners, technical, decision-makers, or custom
-4. **文章长度期望** (Length Expectation) - Keep concise, medium length, deep dive, or natural
-5. **配图需求** (Image Requirements) - Need image suggestions, no images, or images prepared
-6. **数据来源标注** (Data Source Attribution) - Whether to cite data sources
-7. **情感倾向** (Emotional Tone) - Objective neutral, supportive, critical, or balanced
-8. **专业术语处理** (Technical Terminology) - Keep as-is, explain on first use, or simplify
-9. **结尾行动号召** (Call-to-Action) - Add CTA, custom CTA, or no CTA
-10. **时效性标注** (Time Sensitivity) - Whether to add time-based annotations
-
-**Content ambiguities to check**:
-- Vague statements: "这个产品很好" (Which product? What aspect?)
-- Missing context: "这很重要" (What is important? To whom?)
-- Data gaps: "用户增长了很多" (From what to what? Timeframe?)
-
-**Use `AskUserQuestion` tool** for confirmations, max 4 options per question. Prioritize most important ambiguities first.
-
-**Example workflow**:
-
-**Check 1: Title**
-```
-Question: "注意到您没有提供文章标题。请选择标题方式："
-Options:
-- "生成选项" (description: "根据内容提供3个标题建议供选择")
-- "自定义标题" (description: "您自己提供文章标题")
-- "无需标题" (description: "文章不需要标题，直接开始正文")
-- "跳过" (description: "暂时跳过，稍后处理")
-```
-
-**Check 2: Language Style**
-```
-Question: "请选择文章的语言风格："
-Options:
-- "正式专业" (description: "适合学术、行业分析、技术文档")
-- "轻松通俗" (description: "适合科普、生活分享、大众阅读")
-- "亲切口语" (description: "适合个人观点、随笔、情感表达")
-- "自定义风格" (description: "描述您想要的语言风格特点")
-```
-
-**Check 3: Target Audience**
-```
-Question: "请选择文章的目标读者："
-Options:
-- "普通大众" (description: "非专业人士，需要通俗易懂，避免术语")
-- "行业从业者" (description: "有行业背景，可以使用专业术语")
-- "技术人员" (description: "技术背景，可以深入技术细节")
-- "决策者/管理者" (description: "关注商业价值、ROI、战略意义")
-```
+Use `AskUserQuestion` tool for confirmations, max 4 options per question. Prioritize most important ambiguities first.
 
 **Wait** for user response before continuing. Collect all necessary information through multiple rounds if needed.
 
@@ -110,6 +60,13 @@ Improve Markdown structure for better readability.
 - Limit list nesting to 2 levels
 - Add spacing every 300-500 characters
 - Split long paragraphs (> 150 characters)
+
+**Image Handling**:
+- If user provided images in Markdown, they will be automatically converted to Base64 during HTML generation
+- No manual image processing needed in this step - simply include image references in Markdown:
+  - Local images: `![alt text](./images/photo.jpg)`
+  - Remote images: `![alt text](https://example.com/image.png)`
+- All images are automatically converted to Base64 for WeChat compatibility
 
 ### Step 4: Confirm Markdown with User (Loop until satisfied)
 
@@ -157,8 +114,9 @@ Options:
 
 #### Step 5b: Recommend Styles Based on Article Type
 
-**For "通用文章"**, use `AskUserQuestion`:
+Use `AskUserQuestion` to present 3-4 recommended styles for the chosen article type.
 
+**Example for "通用文章"**:
 ```
 Question: "请选择通用类文章风格："
 Options:
@@ -168,8 +126,7 @@ Options:
 - "自定义风格" (custom) - 描述您想要的风格
 ```
 
-**For "技术文章"**, use `AskUserQuestion`:
-
+**Example for "技术文章"**:
 ```
 Question: "请选择技术类文章风格："
 Options:
@@ -179,101 +136,18 @@ Options:
 - "自定义风格" (custom) - 描述您想要的风格
 ```
 
-**For "商业财经"**, use `AskUserQuestion`:
+**For complete style examples for all article types**, see `references/style-selection-examples.md`
 
-```
-Question: "请选择商业财经类文章风格："
-Options:
-- "金融时报" (wechat-ft) - Financial Times风格
-- "Nikkei日经" (nikkei) - 日经新闻风格
-- "晚点风格" (latepost-depth) - 深度商业报道
-- "自定义风格" (custom) - 描述您想要的风格
-```
-
-**For "深度长文"**, use `AskUserQuestion`:
-
-```
-Question: "请选择深度长文类文章风格："
-Options:
-- "晚点风格" (latepost-depth) - 深度报道专用
-- "Medium长文" (wechat-medium) - Medium阅读体验
-- "深度阅读" (wechat-deepread) - 优化长文阅读
-- "自定义风格" (custom) - 描述您想要的风格
-```
-
-**For "新闻资讯"**, use `AskUserQuestion`:
-
-```
-Question: "请选择新闻资讯类文章风格："
-Options:
-- "纽约时报" (wechat-nyt) - NYT新闻风格
-- "Guardian卫报" (guardian) - 卫报风格
-- "Le Monde世界报" (lemonde) - 世界报风格
-- "自定义风格" (custom) - 描述您想要的风格
-```
-
-**For "极简风格"**, use `AskUserQuestion`:
-
-```
-Question: "请选择极简类文章风格："
-Options:
-- "Jony Ive" (wechat-jonyive) - 极简设计大师
-- "Apple极简" (wechat-apple) - Apple官方风格
-- "原研哉·空" (kenya-emptiness) - 日式极简
-- "自定义风格" (custom) - 描述您想要的风格
-```
+Follow the same pattern: 3 recommended styles + "自定义风格" option.
 
 **If user chooses "自定义风格"**:
 - Allow user to describe desired style characteristics
 - Examples: "配色温馨柔和，标题用圆角边框，背景浅粉色"
-- **Read `references/custom-style-guide.md` for generation guidelines**
-- **Create custom style JSON file** following WeChat constraints:
-  - ✅ Container max-width ≤ 740px (CRITICAL)
-  - ✅ Padding ≤ 20px (left/right)
-  - ✅ Font-size 16-17px for body text
-  - ✅ Line-height 1.75-1.85 for readability
-  - ✅ Use !important for critical styles
-  - ✅ Add word-wrap: break-word
+- **Read `references/custom-style-guide.md`** for generation guidelines
+- **Read `references/custom-style-template.md`** for JSON template and WeChat constraints
+- Create custom style JSON file following WeChat constraints
 - Save to working directory as `custom-style.json`
 - Use `--custom-style custom-style.json` parameter when generating HTML
-
-**Custom style generation checklist**:
-- [ ] Container width ≤ 740px
-- [ ] Left/right padding ≤ 20px
-- [ ] Body font-size 16-17px
-- [ ] Line-height 1.75-1.85
-- [ ] Critical styles use !important
-- [ ] Images have max-width: 100%
-- [ ] word-wrap: break-word included
-
-**Custom style JSON template** (with WeChat constraints):
-```json
-{
-  "name": "用户自定义风格",
-  "styles": {
-    "container": "max-width: 740px; margin: 0 auto; padding: 10px 12px 20px 12px; font-family: -apple-system, sans-serif; font-size: 16px; line-height: 1.8 !important; color: #3f3f3f !important; background-color: #fff !important; word-wrap: break-word;",
-    "h1": "font-size: 24px; font-weight: 600; color: #2c3e50 !important; line-height: 1.4 !important; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #3498db;",
-    "h2": "font-size: 22px; font-weight: 600; color: #2c3e50 !important; line-height: 1.4 !important; margin: 28px 0 14px; padding-left: 12px; border-left: 4px solid #3498db;",
-    "h3": "font-size: 20px; font-weight: 600; color: #34495e !important; line-height: 1.4 !important; margin: 24px 0 12px;",
-    "p": "margin: 16px 0 !important; line-height: 1.8 !important; color: #3f3f3f !important;",
-    "strong": "font-weight: 600; color: #2c3e50 !important;",
-    "em": "font-style: italic; color: #555 !important;",
-    "a": "color: #3498db !important; text-decoration: none; border-bottom: 1px solid #3498db;",
-    "ul": "margin: 16px 0; padding-left: 24px;",
-    "ol": "margin: 16px 0; padding-left: 24px;",
-    "li": "margin: 8px 0; line-height: 1.8 !important;",
-    "blockquote": "margin: 16px 0; padding: 8px 16px; background-color: #fafafa !important; border-left: 3px solid #999; color: #666 !important; line-height: 1.5 !important;",
-    "code": "font-family: Consolas, Monaco, \"Courier New\", monospace; font-size: 14px; padding: 2px 6px; background-color: #f5f5f5 !important; color: #e74c3c !important; border-radius: 3px;",
-    "pre": "margin: 20px 0; padding: 16px; background-color: #2d2d2d !important; border-radius: 8px; overflow-x: auto; line-height: 1.6 !important;",
-    "hr": "margin: 32px 0; border: none; border-top: 1px solid #e0e0e0;",
-    "img": "max-width: 100%; max-height: 600px !important; height: auto; display: block; margin: 20px auto; border-radius: 8px;",
-    "table": "width: 100%; margin: 20px 0; border-collapse: collapse; font-size: 15px;",
-    "th": "background-color: #f0f0f0 !important; padding: 10px; text-align: left; border: 1px solid #e0e0e0; font-weight: 600;",
-    "td": "padding: 10px; border: 1px solid #e0e0e0;",
-    "tr": "border-bottom: 1px solid #e0e0e0;"
-  }
-}
-```
 
 ### Step 6: Generate HTML
 
@@ -283,20 +157,37 @@ Convert Markdown to styled HTML using the script.
 
 **Usage with predefined style**:
 ```bash
+# Pass markdown content directly (for short content)
 node scripts/generate-html.js "markdown content" --style <selected-style>
+
+# Read from markdown file (RECOMMENDED - cross-platform compatible)
+node scripts/generate-html.js --file article.md --style <selected-style>
 ```
 
 **Usage with custom style**:
 ```bash
+# Direct content
 node scripts/generate-html.js "markdown content" --custom-style custom-style.json
+
+# From file (RECOMMENDED)
+node scripts/generate-html.js --file article.md --custom-style custom-style.json
 ```
+
+**Image Processing**:
+Images are automatically converted to Base64 for WeChat compatibility. See `references/image-processing.md` for complete documentation including:
+
+- Supported image formats (JPEG, PNG, GIF, WebP, SVG, BMP, TIFF, ICO)
+- Error handling and warnings
+- Command-line options: `--no-convert-images`, `--max-image-size`, `--image-timeout`, `--image-base-path`
+- Troubleshooting guide
 
 **Save output to file**:
 ```bash
-node scripts/generate-html.js "$(cat article.md)" --style wechat-default > article.html
+# Cross-platform compatible (works on Windows, macOS, Linux)
+node scripts/generate-html.js --file article.md --style wechat-default > article.html
 ```
 
-**Output**: Complete HTML file with inline styles, saved to working directory.
+**Output**: Complete HTML file with inline styles and Base64-encoded images, ready for WeChat.
 
 **IMPORTANT**: After generating the HTML file, automatically open it in the browser:
 ```bash
@@ -389,6 +280,18 @@ Load these files as needed during workflow:
 - **When**: Step 5 (creating custom style)
 - **Content**: Comprehensive guide for generating WeChat-compatible custom styles, including constraints checklists, templates, and color schemes
 
+### `references/custom-style-template.md`
+- **When**: Step 5 (creating custom style JSON file)
+- **Content**: WeChat-compatible JSON template and constraint checklist
+
+### `references/style-selection-examples.md`
+- **When**: Step 5 (recommending styles)
+- **Content**: Complete AskUserQuestion examples for all article types
+
+### `references/image-processing.md`
+- **When**: Step 6 (generating HTML with images)
+- **Content**: Complete image processing documentation, options, error handling, and troubleshooting
+
 ## Scripts
 
 ### `scripts/generate-html.js`
@@ -401,14 +304,22 @@ Converts Markdown to HTML with inline styles.
 - Inline style application
 - WeChat-compatible output
 - **Custom style support** via `--custom-style` parameter
+- **Automatic image to Base64 conversion** for WeChat compatibility
+- **Local and remote image support** with automatic handling
 
 **Usage**:
 ```bash
-# Predefined style
-node scripts/generate-html.js "markdown" --style wechat-default > output.html
+# Read from markdown file (RECOMMENDED - cross-platform)
+node scripts/generate-html.js --file article.md --style wechat-default > output.html
 
-# Custom style
-node scripts/generate-html.js "markdown" --custom-style custom-style.json > output.html
+# Pass markdown content directly
+node scripts/generate-html.js "# Title\n\nContent" --style wechat-default > output.html
+
+# Custom style from file
+node scripts/generate-html.js --file article.md --custom-style custom-style.json > output.html
+
+# With image processing options
+node scripts/generate-html.js --file article.md --style wechat-default --max-image-size 10 > output.html
 ```
 
 **Styles**: 18 themes (see Step 5 for complete list organized by article type)
@@ -444,7 +355,7 @@ AI改变教育。个性化学习。效率提升。
 
 **Step 6**: Generate HTML and automatically open in browser.
 ```bash
-node scripts/generate-html.js "$(cat article.md)" --style wechat-default > article.html
+node scripts/generate-html.js --file article.md --style wechat-default > article.html
 
 # Windows (automatically open in browser)
 start article.html
@@ -471,8 +382,31 @@ xdg-open article.html
 **Issue**: Images not displaying in WeChat
 - **Solution**: Ensure images are Base64 encoded or use WeChat material library URLs
 
+**Issue**: Image conversion warnings in stderr
+- **Solution**: Check warnings for specific issues:
+  - "Image file not found" - Verify local image path is correct relative to markdown file
+  - "Failed to download image" - Check URL is accessible and not blocked by CORS
+  - "Image exceeds maximum size" - Increase `--max-image-size` limit or compress image
+  - "Image download timeout" - Increase `--image-timeout` value
+
+**Issue**: Images not being converted to Base64
+- **Solution**:
+  - Check if `--no-convert-images` flag was used (remove it to enable conversion)
+  - For local images, verify paths are relative to the markdown file location
+  - For remote images, ensure URLs start with `http://` or `https://`
+  - WeChat material URLs (mp.weixin.qq.com) are preserved as-is by design
+
+**Issue**: Local image path resolution fails
+- **Solution**: Use `--image-base-path` option to specify the base directory for relative images:
+  ```bash
+  node scripts/generate-html.js --file article.md --style wechat-default --image-base-path ./assets/images
+  ```
+
 **Issue**: Layout broken in WeChat editor
 - **Solution**: Check `references/wechat-syntax.md` for compatibility rules, avoid unsupported CSS
+
+**Issue**: Large image causing slow WeChat editor
+- **Solution**: Compress images before conversion or reduce `--max-image-size` limit to exclude large images
 
 **Issue**: User wants style not in recommended list
 - **Solution**: User can select "自定义风格", describe requirements, or manually choose from all 18 styles in `references/styles.js`

@@ -18,6 +18,186 @@ const { JSDOM } = require('jsdom');
 const stylesPath = path.join(__dirname, '../references/styles.js');
 const STYLES = require(stylesPath);
 
+// 图片 MIME 类型映射
+const MIME_TYPE_MAP = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.bmp': 'image/bmp',
+  '.tiff': 'image/tiff',
+  '.ico': 'image/x-icon'
+};
+
+/**
+ * 检测文件 MIME 类型
+ * @param {string} filePathOrUrl - 文件路径或URL
+ * @returns {string} MIME 类型
+ */
+function detectMimeType(filePathOrUrl) {
+  const ext = path.extname(filePathOrUrl).toLowerCase();
+  return MIME_TYPE_MAP[ext] || 'image/jpeg';
+}
+
+/**
+ * 转换本地图片为 Base64
+ * @param {string} imagePath - 图片路径（相对或绝对）
+ * @param {string} markdownFilePath - Markdown 文件路径（用于解析相对路径）
+ * @param {object} options - 选项
+ * @returns {string|null} Base64 Data URL 或 null（失败时）
+ */
+function convertLocalImageToBase64(imagePath, markdownFilePath = null, options = {}) {
+  try {
+    let resolvedPath;
+
+    if (path.isAbsolute(imagePath)) {
+      resolvedPath = imagePath;
+    } else if (markdownFilePath) {
+      const markdownDir = path.dirname(markdownFilePath);
+      resolvedPath = path.resolve(markdownDir, imagePath);
+    } else if (options.imageBasePath) {
+      resolvedPath = path.resolve(options.imageBasePath, imagePath);
+    } else {
+      resolvedPath = path.resolve(imagePath);
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      console.error(`Warning: Image file not found: ${imagePath} (resolved: ${resolvedPath})`);
+      return null;
+    }
+
+    const stats = fs.statSync(resolvedPath);
+    const maxSizeBytes = (options.maxImageSize || 5) * 1024 * 1024;
+
+    if (stats.size > maxSizeBytes) {
+      console.error(`Warning: Image exceeds maximum size (${(stats.size / 1024 / 1024).toFixed(2)}MB > ${options.maxImageSize || 5}MB): ${imagePath}`);
+      return null;
+    }
+
+    const buffer = fs.readFileSync(resolvedPath);
+    const base64 = buffer.toString('base64');
+    const mimeType = detectMimeType(resolvedPath);
+
+    return `data:${mimeType};base64,${base64}`;
+  } catch (err) {
+    console.error(`Warning: Failed to convert local image: ${imagePath} - ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * 下载并转换网络图片为 Base64
+ * @param {string} imageUrl - 图片 URL
+ * @param {object} options - 选项
+ * @returns {Promise<string|null>} Base64 Data URL 或 null（失败时）
+ */
+async function convertRemoteImageToBase64(imageUrl, options = {}) {
+  try {
+    const { default: fetch } = await import('node-fetch');
+    const timeout = options.imageTimeout || 10000;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    const response = await fetch(imageUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(`Warning: Failed to download image: ${imageUrl} (HTTP ${response.status})`);
+      return null;
+    }
+
+    const buffer = await response.buffer();
+    const maxSizeBytes = (options.maxImageSize || 5) * 1024 * 1024;
+
+    if (buffer.length > maxSizeBytes) {
+      console.error(`Warning: Downloaded image exceeds maximum size (${(buffer.length / 1024 / 1024).toFixed(2)}MB > ${options.maxImageSize || 5}MB): ${imageUrl}`);
+      return null;
+    }
+
+    const base64 = buffer.toString('base64');
+    const mimeType = detectMimeType(imageUrl);
+
+    return `data:${mimeType};base64,${base64}`;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.error(`Warning: Image download timeout (${options.imageTimeout || 10000}ms): ${imageUrl}`);
+    } else {
+      console.error(`Warning: Failed to download image: ${imageUrl} - ${err.message}`);
+    }
+    return null;
+  }
+}
+
+/**
+ * 处理 Markdown 中的所有图片引用
+ * @param {string} markdown - Markdown 内容
+ * @param {object} options - 选项
+ * @returns {Promise<string>} 处理后的 Markdown 内容
+ */
+async function processImages(markdown, options = {}) {
+  if (options.noConvertImages) {
+    return markdown;
+  }
+
+  const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)|<img([^>]*)src=["']([^"']+)["']/gi;
+  const replacements = [];
+  let match;
+
+  while ((match = imageRegex.exec(markdown)) !== null) {
+    const fullMatch = match[0];
+    const altText = match[1] || '';
+    let imagePath = match[2] || match[4] || '';
+
+    if (!imagePath) {
+      continue;
+    }
+
+    // 跳过已经是 Base64 的图片
+    if (imagePath.startsWith('data:')) {
+      continue;
+    }
+
+    // 跳过微信公众号素材库 URL
+    if (imagePath.includes('mp.weixin.qq.com')) {
+      continue;
+    }
+
+    let replacement = null;
+    const isRemoteUrl = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+
+    if (isRemoteUrl) {
+      replacement = await convertRemoteImageToBase64(imagePath, options);
+    } else {
+      replacement = convertLocalImageToBase64(imagePath, options.markdownFilePath, options);
+    }
+
+    if (replacement) {
+      replacements.push({
+        start: match.index,
+        end: match.index + fullMatch.length,
+        replacement: fullMatch.replace(imagePath, replacement)
+      });
+    }
+  }
+
+  // 应用替换（从后向前，避免索引偏移）
+  for (let i = replacements.length - 1; i >= 0; i--) {
+    const { start, end, replacement } = replacements[i];
+    markdown = markdown.substring(0, start) + replacement + markdown.substring(end);
+  }
+
+  return markdown;
+}
+
 /**
  * 应用内联样式到 HTML
  * @param {string} html - HTML内容
@@ -345,11 +525,19 @@ function main() {
 
   if (args.length === 0) {
     console.error('Usage: node generate-html.js "markdown-content" --style <style-name>');
+    console.error('       node generate-html.js --file <markdown-file> --style <style-name>');
     console.error('       node generate-html.js "markdown-content" --custom-style <path-to-custom-style.json>');
     console.error('');
     console.error('Options:');
+    console.error('  --file, -f <path>           Read markdown content from file');
     console.error('  --style <style-name>        Use predefined style');
     console.error('  --custom-style <path>       Use custom style from JSON file');
+    console.error('');
+    console.error('Image Processing Options:');
+    console.error('  --no-convert-images         Disable automatic image to Base64 conversion');
+    console.error('  --max-image-size <MB>       Maximum image size in MB (default: 5)');
+    console.error('  --image-timeout <seconds>   Network timeout for image downloads (default: 10)');
+    console.error('  --image-base-path <path>    Base path for resolving relative image paths');
     console.error('');
     console.error('Available styles:');
     Object.keys(STYLES).forEach(key => {
@@ -370,6 +558,7 @@ function main() {
 
   // 解析参数
   let markdown = '';
+  let markdownFilePath = null;
   let styleKey = 'wechat-default';
   let customStylePath = null;
 
@@ -380,8 +569,44 @@ function main() {
     } else if (args[i] === '--custom-style' && i + 1 < args.length) {
       customStylePath = args[i + 1];
       i++;
+    } else if ((args[i] === '--file' || args[i] === '-f') && i + 1 < args.length) {
+      markdownFilePath = args[i + 1];
+      i++;
     } else if (!args[i].startsWith('-')) {
       markdown = args[i];
+    }
+  }
+
+  // 如果指定了文件路径，读取文件内容
+  if (markdownFilePath) {
+    try {
+      markdown = fs.readFileSync(markdownFilePath, 'utf-8');
+    } catch (err) {
+      console.error(`Error: Failed to read file "${markdownFilePath}": ${err.message}`);
+      process.exit(1);
+    }
+  }
+
+  // 构建选项对象
+  const options = {
+    noConvertImages: args.includes('--no-convert-images'),
+    maxImageSize: null,
+    imageTimeout: null,
+    imageBasePath: null,
+    markdownFilePath: markdownFilePath
+  };
+
+  // 解析图片处理选项
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--max-image-size' && i + 1 < args.length) {
+      options.maxImageSize = parseFloat(args[i + 1]);
+      i++;
+    } else if (args[i] === '--image-timeout' && i + 1 < args.length) {
+      options.imageTimeout = parseInt(args[i + 1]) * 1000;
+      i++;
+    } else if (args[i] === '--image-base-path' && i + 1 < args.length) {
+      options.imageBasePath = args[i + 1];
+      i++;
     }
   }
 
@@ -390,18 +615,25 @@ function main() {
     let data = '';
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', chunk => { data += chunk; });
-    process.stdin.on('end', () => {
-      processMarkdown(data, styleKey, customStylePath);
+    process.stdin.on('end', async () => {
+      await processMarkdown(data, styleKey, customStylePath, options);
     });
   } else {
-    processMarkdown(markdown, styleKey, customStylePath);
+    (async () => {
+      await processMarkdown(markdown, styleKey, customStylePath, options);
+    })();
   }
 }
 
 /**
  * 处理 Markdown 并输出 HTML
+ * @param {string} markdown - Markdown 内容
+ * @param {string} styleKey - 样式键名
+ * @param {string} customStylePath - 自定义样式路径
+ * @param {object} options - 选项
+ * @returns {Promise<void>}
  */
-function processMarkdown(markdown, styleKey, customStylePath = null) {
+async function processMarkdown(markdown, styleKey, customStylePath = null, options = {}) {
   try {
     let customStyle = null;
 
@@ -421,6 +653,9 @@ function processMarkdown(markdown, styleKey, customStylePath = null) {
         throw new Error(`Failed to load custom style: ${err.message}`);
       }
     }
+
+    // 处理图片（转换为 Base64）
+    markdown = await processImages(markdown, options);
 
     // 初始化 markdown-it
     const md = createMarkdownIt();
@@ -449,5 +684,9 @@ module.exports = {
   applyInlineStyles,
   groupConsecutiveImages,
   createMarkdownIt,
-  processMarkdown
+  processMarkdown,
+  processImages,
+  convertLocalImageToBase64,
+  convertRemoteImageToBase64,
+  detectMimeType
 };
