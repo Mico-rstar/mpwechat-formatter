@@ -14,9 +14,9 @@ Transform concise viewpoint documents into beautifully formatted WeChat articles
 3. **Optimize Markdown** - Read `references/formatters.md`, improve structure
 4. **Confirm Markdown** - Use `AskUserQuestion` to verify user satisfaction (loop until satisfied)
 5. **Select style** - Ask article type, then use `AskUserQuestion` to let user choose from recommended styles or describe custom style
-6. **Generate HTML** - Run `scripts/generate-html.js` with selected style (supports custom style via JSON file)
+6. **Generate HTML** - Run `scripts/generate-html.js` with selected style, then automatically open in browser (supports custom style via JSON file)
 7. **Confirm HTML** - Use `AskUserQuestion` to verify satisfaction (loop back to Step 3 or 5 if needed)
-8. **Deliver** - User opens HTML in browser and copies to WeChat editor
+8. **Deliver** - User copies from opened browser to WeChat editor
 
 ## Workflow
 
@@ -298,14 +298,25 @@ node scripts/generate-html.js "$(cat article.md)" --style wechat-default > artic
 
 **Output**: Complete HTML file with inline styles, saved to working directory.
 
+**IMPORTANT**: After generating the HTML file, automatically open it in the browser:
+```bash
+# Windows
+start article.html
+
+# macOS
+open article.html
+
+# Linux
+xdg-open article.html
+```
+
+This ensures the user can immediately preview the formatted article without manual browser navigation.
+
 ### Step 7: Confirm HTML with User (Loop until satisfied)
 
-After generating HTML, use `AskUserQuestion` to verify user satisfaction.
+After generating HTML, automatically open it in the browser (see Step 6), then use `AskUserQuestion` to verify user satisfaction.
 
-**Instruct user to preview HTML**:
-```
-HTML article generated! Please open {filename} in your browser to preview.
-```
+**The HTML file is automatically opened for preview** - the user should see the formatted article in their browser immediately.
 
 **Use `AskUserQuestion` tool**:
 
@@ -341,14 +352,17 @@ After user confirms satisfaction, provide final instructions.
 
 **Example message**:
 ```
-✅ 文章已完成！请按照以下步骤复制到微信公众号编辑器：
+✅ 文章已完成！HTML 文件已在浏览器中自动打开。
 
-1. 在浏览器中打开生成的 HTML 文件：{filename}
-2. 全选内容（Ctrl+A / Cmd+A）
-3. 复制（Ctrl+C / Cmd+C）
-4. 粘贴到微信公众号编辑器
+请按照以下步骤复制到微信公众号编辑器：
+
+1. 在已打开的浏览器中，全选内容（Ctrl+A / Cmd+A）
+2. 复制（Ctrl+C / Cmd+C）
+3. 粘贴到微信公众号编辑器
 
 文章格式已保留，可以直接发布。
+
+如果浏览器未自动打开，请手动打开：{filename}
 ```
 
 ## References
@@ -428,12 +442,21 @@ AI改变教育。个性化学习。效率提升。
 
 **Step 5b**: Use `AskUserQuestion` - User selects "默认公众号 (wechat-default)".
 
-**Step 6**: Generate HTML.
+**Step 6**: Generate HTML and automatically open in browser.
 ```bash
 node scripts/generate-html.js "$(cat article.md)" --style wechat-default > article.html
+
+# Windows (automatically open in browser)
+start article.html
+
+# macOS (automatically open in browser)
+open article.html
+
+# Linux (automatically open in browser)
+xdg-open article.html
 ```
 
-**Step 7**: User previews HTML and uses `AskUserQuestion` - User selects "满意".
+**Step 7**: User previews HTML (automatically opened) and uses `AskUserQuestion` - User selects "满意".
 
 **Step 8**: Provide copy instructions to user.
 
